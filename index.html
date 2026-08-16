@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>工作英语练习器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f8;
+      --surface: #ffffff;
+      --ink: #17212b;
+      --muted: #66737f;
+      --line: #d9e3e8;
+      --primary: #0f766e;
+      --primary-ink: #ffffff;
+      --accent: #2563eb;
+      --warm: #b45309;
+      --ok: #15803d;
+      --danger: #b91c1c;
+      --soft: #e7f5f1;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.5;
+    }
+    button, textarea, input { font: inherit; }
+    button {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-height: 40px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--primary); }
+    button:focus-visible, textarea:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, 0.22);
+      outline-offset: 2px;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    button.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--primary-ink);
+    }
+    button.accent {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+    button.warm {
+      background: var(--warm);
+      border-color: var(--warm);
+      color: #ffffff;
+    }
+    .app {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    .date {
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .goal-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0 0 16px;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .goal-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .goal-item span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      border-radius: 50%;
+      background: var(--soft);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .goal-item b {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 16px;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      min-width: 0;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .panel-head h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+    .count {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .sentence-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .sentence-row {
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .sentence-row:last-child { border-bottom: 0; }
+    .sentence-row .num {
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .sentence-row .en {
+      font-size: 15px;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+    .sentence-row .zh {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    .current-sentence {
+      padding: 2px 0 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sentence-en {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 30px);
+      line-height: 1.3;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+    .sentence-zh {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .controls .wide {
+      grid-column: span 1;
+    }
+    .controls .full {
+      grid-column: 1 / -1;
+    }
+    .status {
+      margin-top: 10px;
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .nav button { flex: 1; }
+    .ai-panel {
+      grid-column: 1 / -1;
+    }
+    .ai-panel textarea {
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--ink);
+      background: #fbfcfd;
+    }
+    .ai-controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .tracker-panel {
+      margin-top: 16px;
+    }
+    .progress {
+      height: 10px;
+      background: #e8eef1;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      transition: width 180ms ease;
+    }
+    .check-row {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .check-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      cursor: pointer;
+    }
+    .check-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+    }
+    @media (max-width: 760px) {
+      .app { width: min(100% - 20px, 1080px); padding-top: 18px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .goal-strip { grid-template-columns: 1fr; }
+      .layout { grid-template-columns: 1fr; }
+      .ai-panel { grid-column: auto; }
+      .controls { grid-template-columns: 1fr 1fr; }
+      .controls .full { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">A1 起步 · 工作场景</p>
+        <h1>工作英语练习器</h1>
+      </div>
+      <div id="date" class="date" aria-live="polite"></div>
+    </header>
+
+    <section class="goal-strip" aria-label="今日步骤">
+      <div class="goal-item"><span>1</span><b>跟读 3 遍</b></div>
+      <div class="goal-item"><span>2</span><b>录音 1 次</b></div>
+      <div class="goal-item"><span>3</span><b>发给 AI 纠错</b></div>
+    </section>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>今日句子</h2>
+          <button id="shuffleBtn" type="button">换一组</button>
+        </div>
+        <ol id="sentenceList" class="sentence-list"></ol>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>跟读录音</h2>
+          <span id="sentenceCount" class="count">1 / 5</span>
+        </div>
+        <div class="current-sentence">
+          <p id="currentEn" class="sentence-en">Loading...</p>
+          <p id="currentZh" class="sentence-zh"></p>
+        </div>
+        <div class="controls">
+          <button id="speakBtn" type="button">朗读</button>
+          <button id="recordBtn" class="primary" type="button">录音</button>
+          <button id="stopBtn" type="button" disabled>停止</button>
+          <button id="playBtn" class="full" type="button" disabled>回放</button>
+          <button id="downloadBtn" class="full" type="button" disabled>下载录音</button>
+        </div>
+        <div id="status" class="status" aria-live="polite">准备就绪</div>
+        <div class="nav">
+          <button id="prevBtn" type="button">上一条</button>
+          <button id="nextBtn" type="button">下一条</button>
+        </div>
+      </section>
+
+      <section class="panel ai-panel">
+        <div class="panel-head">
+          <h2>发给 AI 纠错</h2>
+          <span class="count">支持语音转文字</span>
+        </div>
+        <textarea id="transcript" placeholder="录音后会自动出现在这里，也可以直接打字"></textarea>
+        <div class="ai-controls">
+          <button id="speechBtn" class="accent" type="button">听写</button>
+          <button id="copyBtn" type="button">复制</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel tracker-panel">
+      <div class="panel-head">
+        <h2>今日进度</h2>
+        <button id="resetDayBtn" type="button">重置</button>
+      </div>
+      <div class="progress" aria-hidden="true">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div class="check-row">
+        <label><input id="doneRead" type="checkbox">跟读 3 遍</label>
+        <label><input id="doneRecord" type="checkbox">录音 1 次</label>
+        <label><input id="doneSend" type="checkbox">发给 AI</label>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SENTENCES = [
+      { en: "There is water at the anchorage area.", zh: "锚固区有积水。" },
+      { en: "The drain outlet is missing.", zh: "排水口缺失。" },
+      { en: "The plaster is damaged and stained.", zh: "抹灰破损并有污渍。" },
+      { en: "The floor finishing is incomplete.", zh: "地面收尾没完成。" },
+      { en: "The door frame is not properly anchored.", zh: "门框固定不到位。" },
+      { en: "Painting is not complete on the steel columns.", zh: "钢柱油漆没有完成。" },
+      { en: "The fence is not aligned.", zh: "围栏没有对齐。" },
+      { en: "There is a crack on the wall.", zh: "墙面有裂缝。" },
+      { en: "Please clean the construction waste.", zh: "请清理建筑垃圾。" },
+      { en: "Please repair the damaged wall.", zh: "请修补损坏的墙面。" },
+      { en: "The window needs adjustment.", zh: "窗户需要调整。" },
+      { en: "The sealant is not applied.", zh: "密封胶没有打。" },
+      { en: "The stair is missing.", zh: "台阶缺失。" },
+      { en: "There is a crack on the beam.", zh: "梁上有裂缝。" },
+      { en: "The toilet ceiling is not complete.", zh: "卫生间吊顶没完成。" },
+      { en: "There is water on the roof.", zh: "屋面上有积水。" },
+      { en: "The door cannot close properly.", zh: "门关不严。" },
+      { en: "The paint tone is uneven.", zh: "油漆色调不均匀。" },
+      { en: "Please tighten the bolts.", zh: "请把螺栓拧紧。" },
+      { en: "The handrail needs repair.", zh: "扶手需要维修。" }
+    ];
+
+    const els = {
+      date: document.getElementById("date"),
+      list: document.getElementById("sentenceList"),
+      shuffleBtn: document.getElementById("shuffleBtn"),
+      count: document.getElementById("sentenceCount"),
+      currentEn: document.getElementById("currentEn"),
+      currentZh: document.getElementById("currentZh"),
+      speakBtn: document.getElementById("speakBtn"),
+      recordBtn: document.getElementById("recordBtn"),
+      stopBtn: document.getElementById("stopBtn"),
+      playBtn: document.getElementById("playBtn"),
+      downloadBtn: document.getElementById("downloadBtn"),
+      status: document.getElementById("status"),
+      prevBtn: document.getElementById("prevBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      transcript: document.getElementById("transcript"),
+      speechBtn: document.getElementById("speechBtn"),
+      copyBtn: document.getElementById("copyBtn"),
+      progressBar: document.getElementById("progressBar"),
+      resetDayBtn: document.getElementById("resetDayBtn"),
+      doneRead: document.getElementById("doneRead"),
+      doneRecord: document.getElementById("doneRecord"),
+      doneSend: document.getElementById("doneSend")
+    };
+
+    let active = [];
+    let pointer = 0;
+    let mediaRecorder = null;
+    let stream = null;
+    let chunks = [];
+    let audioUrl = null;
+    let recognition = null;
+    let recognizing = false;
+
+    function todayKey() {
+      const d = new Date();
+      const key = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+      return "work-english-" + key;
+    }
+
+    function loadDay() {
+      try {
+        return JSON.parse(localStorage.getItem(todayKey())) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveDay(state) {
+      localStorage.setItem(todayKey(), JSON.stringify(state));
+    }
+
+    function shuffle(arr) {
+      const copy = arr.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function pickFive() {
+      active = shuffle(SENTENCES).slice(0, 5);
+      pointer = 0;
+    }
+
+    function renderList() {
+      els.list.innerHTML = "";
+      active.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "sentence-row";
+        const num = document.createElement("span");
+        num.className = "num";
+        num.textContent = index + 1;
+        const body = document.createElement("div");
+        const en = document.createElement("div");
+        en.className = "en";
+        en.textContent = item.en;
+        const zh = document.createElement("div");
+        zh.className = "zh";
+        zh.textContent = item.zh;
+        body.append(en, zh);
+        li.append(num, body);
+        els.list.appendChild(li);
+      });
+    }
+
+    function renderCurrent() {
+      const item = active[pointer];
+      els.currentEn.textContent = item.en;
+      els.currentZh.textContent = item.zh;
+      els.count.textContent = `${pointer + 1} / ${active.length}`;
+    }
+
+    function setStatus(text) {
+      els.status.textContent = text;
+    }
+
+    function speak(text) {
+      if (!("speechSynthesis" in window)) {
+        setStatus("当前浏览器不支持朗读");
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      utterance.rate = 0.72;
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang.toLowerCase().startsWith("en") && /Google|Natural|Samantha|Microsoft|Aria/i.test(v.name));
+      const fallback = voices.find(v => v.lang.toLowerCase().startsWith("en"));
+      utterance.voice = preferred || fallback || null;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    async function startRecording() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setStatus("当前浏览器不支持录音");
+        return;
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) chunks.push(event.data);
+        };
+        mediaRecorder.onstop = () => {
+          const mime = mediaRecorder.mimeType || "audio/webm";
+          const blob = new Blob(chunks, { type: mime });
+          if (audioUrl) URL.revokeObjectURL(audioUrl);
+          audioUrl = URL.createObjectURL(blob);
+          els.playBtn.disabled = false;
+          els.downloadBtn.disabled = false;
+          setStatus("录音完成，可以回放");
+          const state = loadDay();
+          state.recorded = true;
+          saveDay(state);
+          renderProgress();
+        };
+        mediaRecorder.start();
+        els.recordBtn.disabled = true;
+        els.stopBtn.disabled = false;
+        setStatus("正在录音...");
+      } catch (error) {
+        setStatus("无法使用麦克风，请检查权限");
+      }
+    }
+
+    function stopRecording() {
+      if (!mediaRecorder || mediaRecorder.state === "inactive") return;
+      mediaRecorder.stop();
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+      els.recordBtn.disabled = false;
+      els.stopBtn.disabled = true;
+    }
+
+    function initSpeechRecognition() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        els.speechBtn.disabled = true;
+        els.speechBtn.textContent = "不支持";
+        return;
+      }
+      recognition = new SR();
+      recognition.lang = "en-US";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.onresult = event => {
+        let text = "";
+        for (let i = 0; i < event.results.length; i++) {
+          text += event.results[i][0].transcript;
+        }
+        els.transcript.value = text.trim();
+      };
+      recognition.onend = () => {
+        recognizing = false;
+        els.speechBtn.textContent = "听写";
+      };
+      recognition.onerror = () => {
+        recognizing = false;
+        els.speechBtn.textContent = "听写";
+      };
+    }
+
+    function toggleRecognition() {
+      if (!recognition) return;
+      if (recognizing) {
+        recognition.stop();
+        recognizing = false;
+        els.speechBtn.textContent = "听写";
+        return;
+      }
+      els.transcript.value = "";
+      recognizing = true;
+      els.speechBtn.textContent = "停止听写";
+      try {
+        recognition.start();
+      } catch {
+        recognizing = false;
+        els.speechBtn.textContent = "听写";
+      }
+    }
+
+    function renderProgress() {
+      const state = loadDay();
+      const values = [state.read || false, state.recorded || false, state.sent || false];
+      const checked = values.filter(Boolean).length;
+      els.doneRead.checked = values[0];
+      els.doneRecord.checked = values[1];
+      els.doneSend.checked = values[2];
+      els.progressBar.style.width = `${Math.round((checked / 3) * 100)}%`;
+    }
+
+    els.shuffleBtn.addEventListener("click", () => {
+      pickFive();
+      renderList();
+      renderCurrent();
+    });
+
+    els.speakBtn.addEventListener("click", () => speak(active[pointer].en));
+    els.recordBtn.addEventListener("click", startRecording);
+    els.stopBtn.addEventListener("click", stopRecording);
+    els.playBtn.addEventListener("click", () => {
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        audio.play();
+      }
+    });
+    els.downloadBtn.addEventListener("click", () => {
+      if (!audioUrl) return;
+      const a = document.createElement("a");
+      a.href = audioUrl;
+      a.download = "work-english-" + Date.now() + ".webm";
+      a.click();
+    });
+
+    els.prevBtn.addEventListener("click", () => {
+      pointer = (pointer - 1 + active.length) % active.length;
+      renderCurrent();
+    });
+    els.nextBtn.addEventListener("click", () => {
+      pointer = (pointer + 1) % active.length;
+      renderCurrent();
+    });
+
+    els.speechBtn.addEventListener("click", toggleRecognition);
+    els.copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(els.transcript.value);
+        setStatus("已复制，可以粘贴到 AI 对话里");
+        const state = loadDay();
+        state.sent = true;
+        saveDay(state);
+        renderProgress();
+      } catch {
+        setStatus("复制失败，请手动选择文字");
+      }
+    });
+
+    els.doneRead.addEventListener("change", () => {
+      const state = loadDay();
+      state.read = els.doneRead.checked;
+      saveDay(state);
+      renderProgress();
+    });
+    els.doneRecord.addEventListener("change", () => {
+      const state = loadDay();
+      state.recorded = els.doneRecord.checked;
+      saveDay(state);
+      renderProgress();
+    });
+    els.doneSend.addEventListener("change", () => {
+      const state = loadDay();
+      state.sent = els.doneSend.checked;
+      saveDay(state);
+      renderProgress();
+    });
+    els.resetDayBtn.addEventListener("click", () => {
+      localStorage.removeItem(todayKey());
+      renderProgress();
+      setStatus("今日进度已重置");
+    });
+
+    const today = new Date();
+    const dateText = new Intl.DateTimeFormat("zh-CN", {
+      month: "long",
+      day: "numeric",
+      weekday: "long"
+    }).format(today);
+    els.date.textContent = dateText;
+
+    pickFive();
+    renderList();
+    renderCurrent();
+    renderProgress();
+    initSpeechRecognition();
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = () => {};
+    }
+  </script>
+</body>
+</html>
