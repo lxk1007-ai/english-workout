@@ -279,6 +279,34 @@
       height: 18px;
       accent-color: var(--primary);
     }
+    .compare-box {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+    .compare-box[hidden] { display: none; }
+    .compare-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .compare-head b { font-size: 14px; }
+    .compare-line {
+      margin: 4px 0 0;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+    .compare-label {
+      color: var(--muted);
+    }
+    .word { font-weight: 600; }
+    .word.ok { color: var(--ok); }
+    .word.miss { color: var(--danger); }
+    .word.extra { color: var(--warm); }
     @media (max-width: 760px) {
       .app { width: min(100% - 20px, 1080px); padding-top: 18px; }
       .topbar { align-items: flex-start; flex-direction: column; }
@@ -341,12 +369,21 @@
       <section class="panel ai-panel">
         <div class="panel-head">
           <h2>发给 AI 纠错</h2>
-          <span class="count">支持语音转文字</span>
+          <span class="count">自动对比 · 支持语音转文字</span>
         </div>
         <textarea id="transcript" placeholder="录音后会自动出现在这里，也可以直接打字"></textarea>
         <div class="ai-controls">
           <button id="speechBtn" class="accent" type="button">听写</button>
           <button id="copyBtn" type="button">复制</button>
+        </div>
+        <div id="compareWrap" class="compare-box" hidden>
+          <div class="compare-head">
+            <b>自动对比</b>
+            <span id="compareScore" class="count"></span>
+          </div>
+          <p class="compare-line"><span class="compare-label">原句：</span><span id="compareTarget"></span></p>
+          <p class="compare-line"><span class="compare-label">你说了：</span><span id="compareSaid"></span></p>
+          <p class="compare-line"><span class="compare-label">提示：</span><span id="compareHint"></span></p>
         </div>
       </section>
     </div>
@@ -409,6 +446,11 @@
       transcript: document.getElementById("transcript"),
       speechBtn: document.getElementById("speechBtn"),
       copyBtn: document.getElementById("copyBtn"),
+      compareWrap: document.getElementById("compareWrap"),
+      compareScore: document.getElementById("compareScore"),
+      compareTarget: document.getElementById("compareTarget"),
+      compareSaid: document.getElementById("compareSaid"),
+      compareHint: document.getElementById("compareHint"),
       progressBar: document.getElementById("progressBar"),
       resetDayBtn: document.getElementById("resetDayBtn"),
       doneRead: document.getElementById("doneRead"),
@@ -567,6 +609,7 @@
           text += event.results[i][0].transcript;
         }
         els.transcript.value = text.trim();
+        renderComparison();
       };
       recognition.onend = () => {
         recognizing = false;
@@ -595,6 +638,58 @@
         recognizing = false;
         els.speechBtn.textContent = "听写";
       }
+    }
+
+    function tokenize(text) {
+      return text.toLowerCase().replace(/[^a-z0-9']+/g, " ").trim().split(/\s+/).filter(Boolean);
+    }
+
+    function renderComparison() {
+      const item = active[pointer];
+      if (!item || !els.transcript.value.trim()) {
+        els.compareWrap.hidden = true;
+        return;
+      }
+      const targetTokens = tokenize(item.en);
+      const saidTokens = tokenize(els.transcript.value);
+      const targetMatched = new Array(targetTokens.length).fill(false);
+      const saidMatched = new Array(saidTokens.length).fill(false);
+
+      for (let t = 0; t < targetTokens.length; t++) {
+        for (let s = 0; s < saidTokens.length; s++) {
+          if (!saidMatched[s] && saidTokens[s] === targetTokens[t]) {
+            saidMatched[s] = true;
+            targetMatched[t] = true;
+            break;
+          }
+        }
+      }
+
+      els.compareTarget.textContent = "";
+      targetTokens.forEach((word, index) => {
+        const span = document.createElement("span");
+        span.className = "word " + (targetMatched[index] ? "ok" : "miss");
+        span.textContent = word;
+        els.compareTarget.appendChild(span);
+        els.compareTarget.appendChild(document.createTextNode(" "));
+      });
+
+      els.compareSaid.textContent = "";
+      saidTokens.forEach((word, index) => {
+        const span = document.createElement("span");
+        span.className = "word " + (saidMatched[index] ? "ok" : "extra");
+        span.textContent = word;
+        els.compareSaid.appendChild(span);
+        els.compareSaid.appendChild(document.createTextNode(" "));
+      });
+
+      const matchedCount = targetMatched.filter(Boolean).length;
+      const missing = targetTokens.filter((word, index) => !targetMatched[index]);
+      els.compareScore.textContent = `${matchedCount}/${targetTokens.length} 个词被识别`;
+      els.compareHint.textContent = missing.length
+        ? "重点重读：" + missing.join(" · ")
+        : "全部被识别，发音基本没问题";
+      els.compareWrap.hidden = false;
     }
 
     function renderProgress() {
@@ -640,6 +735,7 @@
     });
 
     els.speechBtn.addEventListener("click", toggleRecognition);
+    els.transcript.addEventListener("input", renderComparison);
     els.copyBtn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(els.transcript.value);
